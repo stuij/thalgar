@@ -1,0 +1,6 @@
+[package]
+name = "thalgar"
+version = "0.1.0"
+authors = ["Ties Stuij <ties@stuij.se>"]
+
+[dependencies]
