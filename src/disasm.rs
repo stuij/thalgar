@@ -9,19 +9,30 @@ pub struct Disassemble;
 // OP rm, @-rn
 macro_rules! nm_post_dec {
     ($fun:ident, $name:expr) => {
-        fn $fun<B: Bus>(&mut self, bus:&mut B, rm: u16, rn: u16) {
+        fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
             println!("{} r{}, @-r{}", $name, rm, rn);
         }
     }
 }
 
+// OP imm, rn
+macro_rules! imm_n {
+    ($fun:ident, $name:expr) => {
+        fn $fun<B: Bus>(&mut self, bus:&mut B, i: u32, rn: usize) {
+            println!("{} {}, r{}", $name, i, rn);
+        }
+    }
+}
+
+// OP X, @-rn
 macro_rules! n_post_dec {
     ($fun:ident, $name:expr, $src_reg:expr) => {
-        fn $fun<B: Bus>(&mut self, bus:&mut B, rn: u16) {
+        fn $fun<B: Bus>(&mut self, bus:&mut B, rn: usize) {
             println!("{} {}, @-r{}", $name, $src_reg, rn);
         }
     }
 }
+
 
 
 impl Disassemble {
@@ -32,6 +43,7 @@ impl Disassemble {
         do_op!(self, bus, op);
     }
 
+    imm_n!(mov_i, "mov");
     nm_post_dec!(movl, "mov.l");
     n_post_dec!(stsl_pr, "sts.l", "pr");
 }

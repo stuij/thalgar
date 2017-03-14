@@ -146,24 +146,33 @@ impl Sh2 {
 
     // instruction handlers
     // doc in format:
-    // instr          format            desc                   cyc  t-bit
+    // instr          format            desc                     cyc  t-bit
 
-    // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)   1    -
-    fn movl<B: Bus>(&mut self, bus:&mut B, rm: u16, rn: u16) {
-        self.regs.gpr[rn as usize] -= 4;
-        bus.write_long(self.regs.gpr[rn as usize],
-                       self.regs.gpr[rm as usize]);
+    // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)     1    -
+    fn movl<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
+        self.regs.gpr[rn] -= 4;
+        bus.write_long(self.regs.gpr[rn],
+                       self.regs.gpr[rm]);
 
         self.regs.pc += 2;
         self.cycles += 1;
     }
 
-    // STS.L PR,@–Rn  0100nnnn00100010  Rn–4→ Rn, PR → (Rn)    1    -
-    fn stsl_pr<B: Bus>(&mut self, bus: &mut B, rn: u16) {
+    // MOV #imm,Rn    1110nnnniiiiiiii  #imm → Sign extension →  1    -
+    //                                  Rn
+    fn mov_i<B: Bus>(&mut self, bus:&mut B, i: u32, rn: usize) {
+        self.regs.gpr[rn] = i;
+
+        self.regs.pc += 2;
+        self.cycles += 1;
+    }
+
+    // STS.L PR,@–Rn  0100nnnn00100010  Rn–4→ Rn, PR → (Rn)      1    -
+    fn stsl_pr<B: Bus>(&mut self, bus: &mut B, rn: usize) {
         self.regs.gpr[rn as usize] -= 4;
-        bus.write_long(self.regs.gpr[rn as usize],
+        bus.write_long(self.regs.gpr[rn],
                        self.regs.pr);
-        // TODO: no interrupts are allowed between and the next.
+        // TODO: no interrupts are allowed between this instr and the next.
         // Address errors are accepted.
         self.regs.pc += 2;
         self.cycles +=1;

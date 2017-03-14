@@ -1,19 +1,31 @@
 #[macro_use]
 
 // instruction format macros
+
+// 1 register
 macro_rules! n_format {
     ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
-        let rn = ($op & 0x0f00) >> 8;
+        let rn = (($op & 0x0f00) >> 8) as usize;
         $this.$fun($bus, rn);
     }
 }
 
+// 2 registers
 macro_rules! nm_format {
     ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
         let regs = ($op & 0x0ff0) >> 4;
-        let rn = regs >> 0x4;
-        let rm = regs & 0xf;
+        let rn = (regs >> 0x4) as usize;
+        let rm = (regs & 0xf) as usize;
         $this.$fun($bus, rm, rn);
+    }
+}
+
+// register + sign extended immediate
+macro_rules! ni_format {
+    ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
+        let rn = (($op & 0x0f00) >> 0x8) as usize;
+        let i = $op as i8 as i32 as u32;
+        $this.$fun($bus, i, rn);
     }
 }
 
@@ -43,6 +55,7 @@ macro_rules! do_op {
                     }
                 }
             },
+            0b1110 => { ni_format!($this, $bus, $op, mov_i); },
             _ => panic!("did not recognize most significant nibble \
                          {:#06b} of op {:#06x}", $op >> 12, $op)
         }
