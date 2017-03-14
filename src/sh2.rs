@@ -4,6 +4,7 @@ use bus::Bus;
 use disasm;
 use ops;
 
+
 #[derive(Clone)]
 pub struct Regs {
     // registers
@@ -145,9 +146,9 @@ impl Sh2 {
 
     // instruction handlers
     // doc in format:
-    // instr           format            desc                   cyc  t-bit
+    // instr          format            desc                   cyc  t-bit
 
-    // MOV.L Rm,@–Rn   0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)   1    -
+    // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)   1    -
     fn movl<B: Bus>(&mut self, bus:&mut B, rm: u16, rn: u16) {
         self.regs.gpr[rn as usize] -= 4;
         bus.write_long(self.regs.gpr[rn as usize],
@@ -155,6 +156,17 @@ impl Sh2 {
 
         self.regs.pc += 2;
         self.cycles += 1;
+    }
+
+    // STS.L PR,@–Rn  0100nnnn00100010  Rn–4→ Rn, PR → (Rn)    1    -
+    fn stsl_pr<B: Bus>(&mut self, bus: &mut B, rn: u16) {
+        self.regs.gpr[rn as usize] -= 4;
+        bus.write_long(self.regs.gpr[rn as usize],
+                       self.regs.pr);
+        // TODO: no interrupts are allowed between and the next.
+        // Address errors are accepted.
+        self.regs.pc += 2;
+        self.cycles +=1;
     }
 }
 
