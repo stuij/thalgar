@@ -194,6 +194,11 @@ mod tests {
             self.addr[0]
         }
 
+        fn read_long(&self, addr: u32) -> u32 {
+            (self.addr[0] as u32) << 16 |
+            self.addr[1] as u32
+        }
+
         fn write_long(&mut self, addr: u32, val: u32) {
             self.addr[0] = (val >> 16) as u16;
             self.addr[1] = (val & 0xFFFF) as u16;

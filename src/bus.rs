@@ -2,6 +2,7 @@
 pub trait Bus {
     // on the SH2, a word is 32 bits wide
     fn read_word(&self, addr: u32) -> u16;
+    fn read_long(&self, addr: u32) -> u32;
     fn write_long(&mut self, addr: u32, val: u32);
 }
 
@@ -17,6 +18,11 @@ mod tests {
     impl Bus for TestBus {
         fn read_word(&self, addr: u32) -> u16 {
             self.addr[0]
+        }
+
+        fn read_long(&self, addr: u32) -> u32 {
+            (self.addr[0] as u32) << 16 |
+            self.addr[1] as u32
         }
 
         fn write_long(&mut self, addr: u32, val: u32) {
