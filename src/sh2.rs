@@ -85,7 +85,7 @@ impl fmt::Display for Regs {
                 let offset = i*8 + j;
                 write!(f, "  r{:#02}: {:#010x} ", offset, self.gpr[offset]);
             };
-            println!()
+            write!(f, "\n");
         };
         write!(f, "\n   pc: {:#010x}   vbr: {:#010x}   gbr: {:#010x}    \
                         pr: {:#010x}  mach: {:#010x}  macl: {:#010x} ",
@@ -141,6 +141,27 @@ impl Sh2 {
         self.do_op(bus, op);
         self.cycles += 1;
     }
+
+    fn op_most_significant_nibble_unknown(&mut self, op: u16) {
+        panic!("\n\ndid not recognize most significant nibble \
+                {:#06b} of op {:#06x}\n\nCPU state:\n{}\n\n",
+               op >> 12, op, self)
+    }
+
+
+    fn op_least_significant_nibble_unknown(&mut self, op: u16) {
+        panic!("\n\ndid not recognize least significant nibble \
+                {:#06b} of op {:#06x} \n\nCPU state:\n{}\n\n",
+               op & 0xF, op, self)
+    }
+
+
+    fn op_least_significant_byte_unknown(&mut self, op: u16) {
+        panic!("\n\ndid not recognize least significant byte \
+                {:#010b} of op {:#06x} \n\nCPU state:\n{}\n\n",
+               op & 0xFF, op, self)
+    }
+
 
     fn do_op<B: Bus>(&mut self, bus: &mut B, op: u16) {
         do_op!(self, bus, op);

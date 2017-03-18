@@ -50,8 +50,7 @@ macro_rules! do_op {
                 // least significant nibble
                 match $op & 0xf {
                     0b0110 => { nm_format!($this, $bus, $op, movl); },
-                    _ => panic!("did not recognize least significant nibble \
-                                 {:#06b} of op {:#06x}", $op & 0xF, $op)
+                    _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },
             0b0100 => {
@@ -60,15 +59,13 @@ macro_rules! do_op {
                 } else {
                     match $op & 0xff {
                         0b00100010 => { n_format!($this, $bus, $op, stsl_pr); },
-                        _ => panic!("did not recognize least significant byte \
-                                     {:#010b} of op {:#06x}", $op & 0xFF, $op)
+                        _ => $this.op_least_significant_byte_unknown($op)
                     }
                 }
             },
             0b1101 => { nd8_format!($this, $bus, $op, movli); },
             0b1110 => { ni_format!($this, $bus, $op, mov_i); },
-            _ => panic!("did not recognize most significant nibble \
-                         {:#06b} of op {:#06x}", $op >> 12, $op)
+            _ => $this.op_most_significant_nibble_unknown($op)
         }
     }
 }

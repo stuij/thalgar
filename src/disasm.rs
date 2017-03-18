@@ -53,6 +53,18 @@ impl Disassemble {
         do_op!(self, bus, op);
     }
 
+    fn op_most_significant_nibble_unknown(&mut self, op: u16) {
+        print!("unknown instruction: {:#06x}", op);
+    }
+
+    fn op_least_significant_nibble_unknown(&mut self, op: u16) {
+        print!("unknown instruction: {}", op);
+    }
+
+    fn op_least_significant_byte_unknown(&mut self, op: u16) {
+        print!("unknown instruction: {}", op);
+    }
+
     imm_n!(mov_i, "mov");
     disp_n!(movli, "mov.l");
     nm_post_dec!(movl, "mov.l");
