@@ -9,24 +9,24 @@ use ops;
 pub struct Regs {
     // registers
     // [2.1] general purpose registers, sp is #15
-    gpr: [u32; 16],
+    pub gpr: [u32; 16],
 
     // [2.2] control registers
     // The global base register functions as a base address for the indirect
     // GBR addressing mode to transfer data to the registers of on-chip
     // peripheral modules.
-    gbr: u32,
+    pub gbr: u32,
 
     // The vector base register functions as the base address of the exception
     // processing vector area (including interrupts).
-    vbr: u32,
+    pub vbr: u32,
 
     // the status register (sr) bits:
-    sr_t: bool, // sr t bit (#0): various use
-    sr_s: bool, // sr s (saturation) bit (#1): multiply/accumulate
-    sr_i: u32, // interrupt request mask (#4-7): level 0-15
-    sr_q: bool, // (#8) The Q and M bits are used by the DIV0U/S
-    sr_m: bool, // (#9) and DIV1 instructions.
+    pub sr_t: bool, // sr t bit (#0): various use
+    pub sr_s: bool, // sr s (saturation) bit (#1): multiply/accumulate
+    pub sr_i: u32, // interrupt request mask (#4-7): level 0-15
+    pub sr_q: bool, // (#8) The Q and M bits are used by the DIV0U/S
+    pub sr_m: bool, // (#9) and DIV1 instructions.
     // the rest of the bits are reserved
 
 
@@ -35,12 +35,12 @@ pub struct Regs {
     // Multiply and accumulate register high (MACH) Multiply and accumulate
     // register low (MACL): the registers for storing the results of multiply
     // and accumulate operations.
-    mach: u32,
-    macl: u32,
+    pub mach: u32,
+    pub macl: u32,
 
     // Procedure register (PR): store the return destination addresses for
     // subroutine procedures.
-    pr: u32,
+    pub pr: u32,
 
     // program counter
     pub pc: u32,
@@ -137,7 +137,9 @@ impl Sh2 {
 
     pub fn step<B: Bus>(&mut self, bus: &mut B) {
         let op = bus.read_word(self.regs.pc);
+        self.regs.pc += 2;
         self.do_op(bus, op);
+        self.cycles += 1;
     }
 
     fn do_op<B: Bus>(&mut self, bus: &mut B, op: u16) {
@@ -146,36 +148,38 @@ impl Sh2 {
 
     // instruction handlers
     // doc in format:
-    // instr          format            desc                     cyc  t-bit
+    // instr          format            desc                          cyc  t-bit
 
-    // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)     1    -
-    fn movl<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
+    // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)          1    -
+    fn movl<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
         self.regs.gpr[rn] -= 4;
         bus.write_long(self.regs.gpr[rn],
                        self.regs.gpr[rm]);
 
-        self.regs.pc += 2;
-        self.cycles += 1;
     }
 
-    // MOV #imm,Rn    1110nnnniiiiiiii  #imm → Sign extension →  1    -
-    //                                  Rn
-    fn mov_i<B: Bus>(&mut self, bus:&mut B, i: u32, rn: usize) {
+    // MOV.L @(disp:8,PC),Rn  1101nnnndddddddd  (disp × 4 + PC) → Rn  1    -
+    fn movli<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
+        // PC = 4 bytes past current instr, with bottom 2 bits set to 0
+        let pc = (self.regs.pc + 2) & 0xfffffffc;
+        let src = (disp << 2) + pc;
+        self.regs.gpr[rn] = bus.read_long(src);
+    }
+
+    // MOV #imm,Rn  1110nnnniiiiiiii  #imm → Sign extension → Rn      1    -
+    fn mov_i<B: Bus>(&mut self, bus: &mut B, i: u32, rn: usize) {
         self.regs.gpr[rn] = i;
-
-        self.regs.pc += 2;
-        self.cycles += 1;
     }
 
-    // STS.L PR,@–Rn  0100nnnn00100010  Rn–4→ Rn, PR → (Rn)      1    -
+    // MOV.L @Rm, Rn
+
+    // STS.L PR,@–Rn  0100nnnn00100010  Rn–4→ Rn, PR → (Rn)           1    -
     fn stsl_pr<B: Bus>(&mut self, bus: &mut B, rn: usize) {
         self.regs.gpr[rn as usize] -= 4;
         bus.write_long(self.regs.gpr[rn],
                        self.regs.pr);
         // TODO: no interrupts are allowed between this instr and the next.
         // Address errors are accepted.
-        self.regs.pc += 2;
-        self.cycles +=1;
     }
 }
 

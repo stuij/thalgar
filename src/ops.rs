@@ -20,6 +20,16 @@ macro_rules! nm_format {
     }
 }
 
+
+// PC relative with displacement
+macro_rules! nd8_format {
+    ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
+        let rn = (($op & 0x0f00) >> 0x8) as usize;
+        let d = ($op & 0xff) as u32;
+        $this.$fun($bus, d, rn);
+    }
+}
+
 // register + sign extended immediate
 macro_rules! ni_format {
     ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
@@ -55,6 +65,7 @@ macro_rules! do_op {
                     }
                 }
             },
+            0b1101 => { nd8_format!($this, $bus, $op, movli); },
             0b1110 => { ni_format!($this, $bus, $op, mov_i); },
             _ => panic!("did not recognize most significant nibble \
                          {:#06b} of op {:#06x}", $op >> 12, $op)

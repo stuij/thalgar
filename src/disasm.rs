@@ -15,6 +15,16 @@ macro_rules! nm_post_dec {
     }
 }
 
+// op @(disp, PC), rn
+macro_rules! disp_n {
+    ($fun:ident, $name:expr) => {
+        fn $fun<B: Bus>(&mut self, bus:&mut B, d: u32, rn: usize) {
+            println!("{} @({}, PC), r{}", $name, d, rn);
+        }
+    }
+}
+
+
 // OP imm, rn
 macro_rules! imm_n {
     ($fun:ident, $name:expr) => {
@@ -44,6 +54,7 @@ impl Disassemble {
     }
 
     imm_n!(mov_i, "mov");
+    disp_n!(movli, "mov.l");
     nm_post_dec!(movl, "mov.l");
     n_post_dec!(stsl_pr, "sts.l", "pr");
 }
