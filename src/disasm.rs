@@ -66,7 +66,7 @@ impl Disassemble {
     }
 
     imm_n!(mov_i, "mov");
-    disp_n!(movli, "mov.l");
-    nm_post_dec!(movl, "mov.l");
-    n_post_dec!(stsl_pr, "sts.l", "pr");
+    disp_n!(mov_li, "mov.l");
+    nm_post_dec!(mov_lm, "mov.l");
+    n_post_dec!(sts_mpr, "sts.l", "pr");
 }

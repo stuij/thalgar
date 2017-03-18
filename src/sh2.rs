@@ -169,33 +169,33 @@ impl Sh2 {
 
     // instruction handlers
     // doc in format:
-    // instr          format            desc                          cyc  t-bit
-
-    // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)          1    -
-    fn movl<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
-        self.regs.gpr[rn] -= 4;
-        bus.write_long(self.regs.gpr[rn],
-                       self.regs.gpr[rm]);
-
-    }
-
-    // MOV.L @(disp:8,PC),Rn  1101nnnndddddddd  (disp × 4 + PC) → Rn  1    -
-    fn movli<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
-        // PC = 4 bytes past current instr, with bottom 2 bits set to 0
-        let pc = (self.regs.pc + 2) & 0xfffffffc;
-        let src = (disp << 2) + pc;
-        self.regs.gpr[rn] = bus.read_long(src);
-    }
+    // instr        format            desc                            cyc  t-bit
 
     // MOV #imm,Rn  1110nnnniiiiiiii  #imm → Sign extension → Rn      1    -
     fn mov_i<B: Bus>(&mut self, bus: &mut B, i: u32, rn: usize) {
         self.regs.gpr[rn] = i;
     }
 
+    // MOV.L @(disp:8,PC),Rn  1101nnnndddddddd  (disp × 4 + PC) → Rn  1    -
+    fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
+        // PC = 4 bytes past current instr, with bottom 2 bits set to 0
+        let pc = (self.regs.pc + 2) & 0xfffffffc;
+        let src = (disp << 2) + pc;
+        self.regs.gpr[rn] = bus.read_long(src);
+    }
+
+    // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)          1    -
+    fn mov_lm<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        self.regs.gpr[rn] -= 4;
+        bus.write_long(self.regs.gpr[rn],
+                       self.regs.gpr[rm]);
+
+    }
+
     // MOV.L @Rm, Rn
 
     // STS.L PR,@–Rn  0100nnnn00100010  Rn–4→ Rn, PR → (Rn)           1    -
-    fn stsl_pr<B: Bus>(&mut self, bus: &mut B, rn: usize) {
+    fn sts_mpr<B: Bus>(&mut self, bus: &mut B, rn: usize) {
         self.regs.gpr[rn as usize] -= 4;
         bus.write_long(self.regs.gpr[rn],
                        self.regs.pr);

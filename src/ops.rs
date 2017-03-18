@@ -49,7 +49,7 @@ macro_rules! do_op {
             0b0010 => {
                 // least significant nibble
                 match $op & 0xf {
-                    0b0110 => { nm_format!($this, $bus, $op, movl); },
+                    0b0110 => { nm_format!($this, $bus, $op, mov_lm); },
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },
@@ -58,12 +58,12 @@ macro_rules! do_op {
                     panic!("please implement MAC.W @Rm+,@Rn+")
                 } else {
                     match $op & 0xff {
-                        0b00100010 => { n_format!($this, $bus, $op, stsl_pr); },
+                        0b00100010 => { n_format!($this, $bus, $op, sts_mpr); },
                         _ => $this.op_least_significant_byte_unknown($op)
                     }
                 }
             },
-            0b1101 => { nd8_format!($this, $bus, $op, movli); },
+            0b1101 => { nd8_format!($this, $bus, $op, mov_li); },
             0b1110 => { ni_format!($this, $bus, $op, mov_i); },
             _ => $this.op_most_significant_nibble_unknown($op)
         }
