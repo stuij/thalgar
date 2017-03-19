@@ -6,8 +6,25 @@ pub struct Disassemble;
 
 // macros for handily printing dissassembly fns
 
+macro_rules! label {
+    ($fun:ident, $name:expr) => {
+        fn $fun<B: Bus>(&mut self, bus:&mut B, disp: u32) {
+            println!("{} label (disp: {})", $name, disp);
+        }
+    }
+}
+
+// OP @rm, rn
+macro_rules! at_mn {
+    ($fun:ident, $name:expr) => {
+        fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
+            println!("{} @r{}, r{}", $name, rm, rn);
+        }
+    }
+}
+
 // OP rm, @-rn
-macro_rules! nm_post_dec {
+macro_rules! mn_post_dec {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
             println!("{} r{}, @-r{}", $name, rm, rn);
@@ -23,7 +40,6 @@ macro_rules! disp_n {
         }
     }
 }
-
 
 // OP imm, rn
 macro_rules! imm_n {
@@ -65,8 +81,10 @@ impl Disassemble {
         print!("unknown instruction: {}", op);
     }
 
+    label!(bra, "bra");
+    at_mn!(mov_ll, "mov.l");
     imm_n!(mov_i, "mov");
     disp_n!(mov_li, "mov.l");
-    nm_post_dec!(mov_lm, "mov.l");
+    mn_post_dec!(mov_lm, "mov.l");
     n_post_dec!(sts_mpr, "sts.l", "pr");
 }

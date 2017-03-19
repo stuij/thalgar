@@ -100,13 +100,17 @@ impl fmt::Display for Regs {
 // references to sections of the SH2 programming manual are enclosed
 // in brackets. ex: [2.1]
 pub struct Sh2 {
+    cycles: u64,
     regs: Regs,
-    cycles: u64
+    delay: bool,
+    delay_pc: u32,
 }
 
 impl fmt::Display for Sh2 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.regs)
+        write!(f, "{}\
+                   \n  cyc: {:#010x}   del: {:<8}  del_pc: {:#010x}",
+               self.regs, self.cycles, self.delay, self.delay_pc)
     }
 }
 
@@ -114,8 +118,11 @@ impl fmt::Display for Sh2 {
 impl Sh2 {
     pub fn new() -> Sh2 {
         Sh2 {
+            cycles: 0,
             regs: Regs::new(),
-            cycles: 0
+            delay: false,
+            delay_pc: 0xdeadbeef,
+
         }
     }
 
@@ -137,7 +144,14 @@ impl Sh2 {
 
     pub fn step<B: Bus>(&mut self, bus: &mut B) {
         let op = bus.read_word(self.regs.pc);
-        self.regs.pc += 2;
+
+        if self.delay {
+            self.regs.pc = self.delay_pc;
+            self.delay = false;
+        } else {
+            self.regs.pc += 2;
+        }
+
         self.do_op(bus, op);
         self.cycles += 1;
     }
@@ -171,9 +185,23 @@ impl Sh2 {
     // doc in format:
     // instr        format            desc                            cyc  t-bit
 
+    // BRA label    1010dddddddddddd  Delayed branch,                 2    -
+    //                                disp × 2 + PC → PC
+    fn bra<B: Bus>(&mut self, bus: &mut B, disp: u32) {
+        let offset = if (disp & 800) == 0 {
+            0x00000fff & disp
+        } else {
+            0xFFFFF000 | disp
+        };
+
+        self.delay = true;
+        self.delay_pc = self.regs.pc + 2 + (offset << 1);
+        self.cycles += 1;
+    }
+
     // MOV #imm,Rn  1110nnnniiiiiiii  #imm → Sign extension → Rn      1    -
-    fn mov_i<B: Bus>(&mut self, bus: &mut B, i: u32, rn: usize) {
-        self.regs.gpr[rn] = i;
+    fn mov_i<B: Bus>(&mut self, bus: &mut B, imm: u32, rn: usize) {
+        self.regs.gpr[rn] = imm;
     }
 
     // MOV.L @(disp:8,PC),Rn  1101nnnndddddddd  (disp × 4 + PC) → Rn  1    -
@@ -189,14 +217,16 @@ impl Sh2 {
         self.regs.gpr[rn] -= 4;
         bus.write_long(self.regs.gpr[rn],
                        self.regs.gpr[rm]);
-
     }
 
-    // MOV.L @Rm, Rn
+    // MOV.L @Rm, Rn  0110nnnnmmmm0010  (Rm) → Rn                     1    -
+    fn mov_ll<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        self.regs.gpr[rn] = bus.read_long(self.regs.gpr[rm]);
+    }
 
     // STS.L PR,@–Rn  0100nnnn00100010  Rn–4→ Rn, PR → (Rn)           1    -
     fn sts_mpr<B: Bus>(&mut self, bus: &mut B, rn: usize) {
-        self.regs.gpr[rn as usize] -= 4;
+        self.regs.gpr[rn] -= 4;
         bus.write_long(self.regs.gpr[rn],
                        self.regs.pr);
         // TODO: no interrupts are allowed between this instr and the next.
