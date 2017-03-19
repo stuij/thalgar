@@ -2,14 +2,21 @@
 
 // instruction format macros
 
-// PC relative 12 bits of displacement
-macro_rules! d12_format {
+// PC relative 8 bits of displacement
+macro_rules! d8_format {
     ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
-        let disp = ($op & 0x0fff) as u32;
+        let disp = $op as i8 as i32;
         $this.$fun($bus, disp);
     }
 }
 
+// PC relative 12 bits of displacement
+macro_rules! d12_format {
+    ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
+        let d = ($op & 0x0fff) as i32;
+        $this.$fun($bus, (d << 20) >> 20);
+    }
+}
 
 // 1 register
 macro_rules! n_format {
@@ -28,7 +35,6 @@ macro_rules! nm_format {
         $this.$fun($bus, rm, rn);
     }
 }
-
 
 // PC relative with displacement
 macro_rules! nd8_format {
@@ -49,8 +55,6 @@ macro_rules! ni_format {
 }
 
 
-// STS.L PR, @–Rn
-
 macro_rules! do_op {
     ($this:ident, $bus:expr, $op:expr) => {
         match $op >> 12 {
@@ -59,6 +63,12 @@ macro_rules! do_op {
                 // least significant nibble
                 match $op & 0xf {
                     0b0110 => { nm_format!($this, $bus, $op, mov_lm); },
+                    _ => $this.op_least_significant_nibble_unknown($op)
+                }
+            },
+            0b0011 => {
+                match $op & 0xf {
+                    0b0010 => { nm_format!($this, $bus, $op, cmp_hs); },
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },
@@ -76,6 +86,13 @@ macro_rules! do_op {
                 match $op & 0xf {
                     0b0010 => { nm_format!($this, $bus, $op, mov_ll); },
                     _ => $this.op_least_significant_nibble_unknown($op)
+                }
+            },
+            0b1000 => {
+                match ($op & 0x0f00) >> 8 {
+                    0b1011 => { d8_format!($this, $bus, $op, bf); },
+                    _ => panic!("2nd nibble unknown: {:#06b} of op {:#06x}",
+                                ($op & 0x0f00) >> 8, $op)
                 }
             },
             0b1010 => { d12_format!($this, $bus, $op, bra); },

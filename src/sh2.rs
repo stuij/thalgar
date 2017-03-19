@@ -185,18 +185,31 @@ impl Sh2 {
     // doc in format:
     // instr        format            desc                            cyc  t-bit
 
-    // BRA label    1010dddddddddddd  Delayed branch,                 2    -
-    //                                disp × 2 + PC → PC
-    fn bra<B: Bus>(&mut self, bus: &mut B, disp: u32) {
-        let offset = if (disp & 800) == 0 {
-            0x00000fff & disp
-        } else {
-            0xFFFFF000 | disp
-        };
+    // BF  label  10001011dddddddd  If T = 0, disp × 2 + PC → PC;     3/1  -
+    //                              if T = 1, nop
+    fn bf<B: Bus>(&mut self, bus: &mut B, disp: i32) {
+        if !self.regs.sr_t {
+            self.regs.pc = (self.regs.pc + 2).wrapping_add((disp << 1) as u32);
+            self.cycles += 2;
+        }
+    }
 
+    // BRA label  1010dddddddddddd  Delayed branch,                   2    -
+    //                              disp × 2 + PC → PC
+    fn bra<B: Bus>(&mut self, bus: &mut B, disp: i32) {
         self.delay = true;
-        self.delay_pc = self.regs.pc + 2 + (offset << 1);
+        self.delay_pc = (self.regs.pc + 2).wrapping_add((disp << 1) as u32);
         self.cycles += 1;
+    }
+
+    // CMP/HS Rm, Rn  0011nnnnmmmm0010  If Rn≥Rm with                 1    Comp.
+    //                                  unsigned data, 1 → T              result
+    fn cmp_hs<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        if self.regs.gpr[rn] >= self.regs.gpr[rm] {
+            self.regs.sr_t = true;
+        } else {
+            self.regs.sr_t = false;
+        }
     }
 
     // MOV #imm,Rn  1110nnnniiiiiiii  #imm → Sign extension → Rn      1    -
