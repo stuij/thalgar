@@ -185,6 +185,11 @@ impl Sh2 {
     // doc in format:
     // instr        format            desc                            cyc  t-bit
 
+    // ADD #imm, Rn  0111nnnniiiiiiii  Rn + imm → Rn                  1    -
+    fn add_i<B: Bus>(&mut self, bus: &mut B, imm: u32, rn: usize) {
+        self.regs.gpr[rn] += imm;
+    }
+
     // BF  label  10001011dddddddd  If T = 0, disp × 2 + PC → PC;     3/1  -
     //                              if T = 1, nop
     fn bf<B: Bus>(&mut self, bus: &mut B, disp: i32) {
@@ -212,7 +217,7 @@ impl Sh2 {
         }
     }
 
-    // MOV #imm,Rn  1110nnnniiiiiiii  #imm → Sign extension → Rn      1    -
+    // MOV #imm, Rn  1110nnnniiiiiiii  #imm → Sign extension → Rn     1    -
     fn mov_i<B: Bus>(&mut self, bus: &mut B, imm: u32, rn: usize) {
         self.regs.gpr[rn] = imm;
     }
@@ -228,8 +233,12 @@ impl Sh2 {
     // MOV.L Rm,@–Rn  0010nnnnmmmm0110  Rn–4 → Rn, Rm → (Rn)          1    -
     fn mov_lm<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
         self.regs.gpr[rn] -= 4;
-        bus.write_long(self.regs.gpr[rn],
-                       self.regs.gpr[rm]);
+        bus.write_long(self.regs.gpr[rn], self.regs.gpr[rm]);
+    }
+
+    // MOV.L Rm, @Rn  0010nnnnmmmm0010  Rm → (Rn)                     1    -
+    fn mov_ls<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        bus.write_long(self.regs.gpr[rn], self.regs.gpr[rm]);
     }
 
     // MOV.L @Rm, Rn  0110nnnnmmmm0010  (Rm) → Rn                     1    -

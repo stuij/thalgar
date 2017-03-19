@@ -62,6 +62,7 @@ macro_rules! do_op {
             0b0010 => {
                 // least significant nibble
                 match $op & 0xf {
+                    0b0010 => { nm_format!($this, $bus, $op, mov_ls); },
                     0b0110 => { nm_format!($this, $bus, $op, mov_lm); },
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
@@ -88,6 +89,7 @@ macro_rules! do_op {
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },
+            0b0111 => { ni_format!($this, $bus, $op, add_i); },
             0b1000 => {
                 match ($op & 0x0f00) >> 8 {
                     0b1011 => { d8_format!($this, $bus, $op, bf); },

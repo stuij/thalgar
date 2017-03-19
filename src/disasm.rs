@@ -14,6 +14,15 @@ macro_rules! label {
     }
 }
 
+// OP rm, rn
+macro_rules! mn {
+    ($fun:ident, $name:expr) => {
+        fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
+            println!("{} r{}, r{}", $name, rm, rn);
+        }
+    }
+}
+
 // OP @rm, rn
 macro_rules! at_mn {
     ($fun:ident, $name:expr) => {
@@ -23,11 +32,11 @@ macro_rules! at_mn {
     }
 }
 
-// OP rm, rn
-macro_rules! mn {
+// OP rm, @rn
+macro_rules! m_at_n {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
-            println!("{} r{}, r{}", $name, rm, rn);
+            println!("{} r{}, @r{}", $name, rm, rn);
         }
     }
 }
@@ -90,10 +99,12 @@ impl Disassemble {
         print!("unknown instruction: {}", op);
     }
 
+    imm_n!(add_i, "add");
     label!(bf, "bf");
     label!(bra, "bra");
     mn!(cmp_hs, "cmp/hs");
     at_mn!(mov_ll, "mov.l");
+    m_at_n!(mov_ls, "mov.l");
     imm_n!(mov_i, "mov");
     disp_n!(mov_li, "mov.l");
     mn_post_dec!(mov_lm, "mov.l");
