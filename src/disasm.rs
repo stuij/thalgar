@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bus::Bus;
 use ops;
 use sh2;
@@ -77,13 +79,16 @@ macro_rules! n_post_dec {
 
 
 pub struct Disassemble {
-    pc: u32
+    pc: u32,
+    labels: HashMap<u32, String>,
 }
 
 
 impl Disassemble {
     pub fn new() -> Disassemble {
-        Disassemble { pc: 0 }
+        Disassemble { pc: 0,
+                      labels: HashMap::new(),
+        }
     }
 
     pub fn disasemble<B: Bus>(&mut self, cpu: &sh2::Sh2, bus: &mut B) {
@@ -93,7 +98,9 @@ impl Disassemble {
 
     pub fn print_addr<B: Bus>(&mut self, bus: &mut B, addr: u32) {
         let op = bus.read_word(addr);
-        print!("{:#010x}   {:#06x}    ", addr, op);
+        let mut label = String::clone(self.labels.get(&addr)
+                                          .unwrap_or(&String::from("")));
+        print!("{:<10}  {:#010x}   {:#06x}    ", label, addr, op);
         do_op!(self, bus, op);
     }
 
@@ -109,6 +116,14 @@ impl Disassemble {
     fn print_unknown_instr(&mut self, op: u16) {
         print!("unknown instruction: {:#06x}", op);
         println!();
+    }
+
+    fn add_label(&mut self, addr: u32) -> &str {
+        let label_name = format!("label-{}", self.labels.len());
+        if !self.labels.contains_key(&addr) {
+            self.labels.insert(addr, label_name);
+        }
+        &self.labels.get(&addr).unwrap()
     }
 
     fn op_most_significant_nibble_unknown(&mut self, op: u16) {
@@ -133,12 +148,14 @@ impl Disassemble {
 
     fn bf<B: Bus>(&mut self, bus: &mut B, disp: i32) {
         let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
-        println!("bf label (addr: {:#010x}) (disp: {})", addr, disp);
+        let label = self.add_label(addr);
+        println!("bf {} (addr: {:#010x}) (disp: {})", label, addr, disp);
     }
 
     fn bra<B: Bus>(&mut self, bus: &mut B, disp: i32) {
         let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
-        println!("bra label (addr: {:#010x}) (disp: {})", addr, disp);
+        let label = self.add_label(addr);
+        println!("bra {} (addr: {:#010x}) (disp: {})", label, addr, disp);
     }
 
     fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
