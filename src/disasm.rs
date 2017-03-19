@@ -2,8 +2,6 @@ use bus::Bus;
 use ops;
 use sh2;
 
-pub struct Disassemble;
-
 // macros for handily printing dissassembly fns
 
 macro_rules! label {
@@ -78,35 +76,75 @@ macro_rules! n_post_dec {
 }
 
 
+pub struct Disassemble {
+    pc: u32
+}
+
 
 impl Disassemble {
+    pub fn new() -> Disassemble {
+        Disassemble { pc: 0 }
+    }
+
     pub fn disasemble<B: Bus>(&mut self, cpu: &sh2::Sh2, bus: &mut B) {
-        let regs = cpu.get_regs();
-        let op = bus.read_word(regs.pc);
-        print!("{:#010x}   {:#06x}    ", regs.pc, op);
+        self.pc = cpu.get_pc();
+        self.print_addr(bus, cpu.get_pc());
+    }
+
+    pub fn print_addr<B: Bus>(&mut self, bus: &mut B, addr: u32) {
+        let op = bus.read_word(addr);
+        print!("{:#010x}   {:#06x}    ", addr, op);
         do_op!(self, bus, op);
     }
 
-    fn op_most_significant_nibble_unknown(&mut self, op: u16) {
+    pub fn print_range<B: Bus>(&mut self, bus: &mut B,
+                               start: u32, end: u32) {
+        for i in (start..end).filter(|x| x % 2 == 0) {
+            self.pc = i;
+            let val = bus.read_word(i);
+            self.print_addr(bus, i);
+        }
+    }
+
+    fn print_unknown_instr(&mut self, op: u16) {
         print!("unknown instruction: {:#06x}", op);
+        println!();
+    }
+
+    fn op_most_significant_nibble_unknown(&mut self, op: u16) {
+        self.print_unknown_instr(op);
     }
 
     fn op_least_significant_nibble_unknown(&mut self, op: u16) {
-        print!("unknown instruction: {}", op);
+        self.print_unknown_instr(op);
     }
 
     fn op_least_significant_byte_unknown(&mut self, op: u16) {
-        print!("unknown instruction: {}", op);
+        self.print_unknown_instr(op);
     }
 
     imm_n!(add_i, "add");
-    label!(bf, "bf");
-    label!(bra, "bra");
     mn!(cmp_hs, "cmp/hs");
     at_mn!(mov_ll, "mov.l");
     m_at_n!(mov_ls, "mov.l");
     imm_n!(mov_i, "mov");
-    disp_n!(mov_li, "mov.l");
     mn_post_dec!(mov_lm, "mov.l");
     n_post_dec!(sts_mpr, "sts.l", "pr");
+
+    fn bf<B: Bus>(&mut self, bus: &mut B, disp: i32) {
+        let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
+        println!("bf label (addr: {:#010x}) (disp: {})", addr, disp);
+    }
+
+    fn bra<B: Bus>(&mut self, bus: &mut B, disp: i32) {
+        let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
+        println!("bra label (addr: {:#010x}) (disp: {})", addr, disp);
+    }
+
+    fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
+        // PC = 4 bytes past current instr, with bottom 2 bits set to 0
+        let pc = (self.pc + 4) & 0xfffffffc;
+        let src = (disp << 2) + pc;
+        println!("mov.l @({}, PC), r{} (addr: {:#010x})", disp, rn, src);
+    }
 }

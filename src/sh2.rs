@@ -130,6 +130,10 @@ impl Sh2 {
         self.regs.clone()
     }
 
+    pub fn get_pc(&self) -> u32 {
+        self.regs.pc
+    }
+
     pub fn reset(&mut self, pc: u32, sp: u32) {
         self.regs.reset(pc, sp);
     }
