@@ -5,11 +5,17 @@ use ops;
 use sh2;
 
 // macros for handily printing dissassembly fns
+macro_rules! print_dis {
+    ($this:ident, $fmt:expr) =>
+        (if $this.print {print!(concat!($fmt, "\n"))});
+    ($this:ident, $fmt:expr, $($arg:tt)*) =>
+        (if $this.print { print!(concat!($fmt, "\n"), $($arg)*)});
+}
 
 macro_rules! label {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, disp: i32) {
-            println!("{} label (disp: {})", $name, disp);
+            print_dis!(self, "{} label (disp: {})", $name, disp);
         }
     }
 }
@@ -18,7 +24,7 @@ macro_rules! label {
 macro_rules! mn {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
-            println!("{} r{}, r{}", $name, rm, rn);
+            print_dis!(self, "{} r{}, r{}", $name, rm, rn);
         }
     }
 }
@@ -27,7 +33,7 @@ macro_rules! mn {
 macro_rules! at_mn {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
-            println!("{} @r{}, r{}", $name, rm, rn);
+            print_dis!(self, "{} @r{}, r{}", $name, rm, rn);
         }
     }
 }
@@ -36,7 +42,7 @@ macro_rules! at_mn {
 macro_rules! m_at_n {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
-            println!("{} r{}, @r{}", $name, rm, rn);
+            print_dis!(self, "{} r{}, @r{}", $name, rm, rn);
         }
     }
 }
@@ -45,7 +51,7 @@ macro_rules! m_at_n {
 macro_rules! mn_post_dec {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, rm: usize, rn: usize) {
-            println!("{} r{}, @-r{}", $name, rm, rn);
+            print_dis!(self, "{} r{}, @-r{}", $name, rm, rn);
         }
     }
 }
@@ -54,7 +60,7 @@ macro_rules! mn_post_dec {
 macro_rules! disp_n {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, d: u32, rn: usize) {
-            println!("{} @({}, PC), r{}", $name, d, rn);
+            print_dis!(self, "{} @({}, PC), r{}", $name, d, rn);
         }
     }
 }
@@ -63,7 +69,7 @@ macro_rules! disp_n {
 macro_rules! imm_n {
     ($fun:ident, $name:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, i: u32, rn: usize) {
-            println!("{} {}, r{}", $name, i, rn);
+            print_dis!(self, "{} {}, r{}", $name, i, rn);
         }
     }
 }
@@ -72,7 +78,7 @@ macro_rules! imm_n {
 macro_rules! n_post_dec {
     ($fun:ident, $name:expr, $src_reg:expr) => {
         fn $fun<B: Bus>(&mut self, bus:&mut B, rn: usize) {
-            println!("{} {}, @-r{}", $name, $src_reg, rn);
+            print_dis!(self, "{} {}, @-r{}", $name, $src_reg, rn);
         }
     }
 }
@@ -81,6 +87,7 @@ macro_rules! n_post_dec {
 pub struct Disassemble {
     pc: u32,
     labels: HashMap<u32, String>,
+    print: bool
 }
 
 
@@ -88,20 +95,8 @@ impl Disassemble {
     pub fn new() -> Disassemble {
         Disassemble { pc: 0,
                       labels: HashMap::new(),
+                      print: true,
         }
-    }
-
-    pub fn disasemble<B: Bus>(&mut self, cpu: &sh2::Sh2, bus: &mut B) {
-        self.pc = cpu.get_pc();
-        self.print_addr(bus, cpu.get_pc());
-    }
-
-    pub fn print_addr<B: Bus>(&mut self, bus: &mut B, addr: u32) {
-        let op = bus.read_word(addr);
-        let mut label = String::clone(self.labels.get(&addr)
-                                          .unwrap_or(&String::from("")));
-        print!("{:<10}  {:#010x}   {:#06x}    ", label, addr, op);
-        do_op!(self, bus, op);
     }
 
     pub fn print_range<B: Bus>(&mut self, bus: &mut B,
@@ -109,21 +104,43 @@ impl Disassemble {
         for i in (start..end).filter(|x| x % 2 == 0) {
             self.pc = i;
             let val = bus.read_word(i);
-            self.print_addr(bus, i);
+            self.disass_addr(bus, i);
         }
     }
 
-    fn print_unknown_instr(&mut self, op: u16) {
-        print!("unknown instruction: {:#06x}", op);
-        println!();
+    pub fn disasemble<B: Bus>(&mut self, cpu: &sh2::Sh2, bus: &mut B) {
+        self.pc = cpu.get_pc();
+        self.disass_addr(bus, cpu.get_pc());
     }
 
-    fn add_label(&mut self, addr: u32) -> &str {
+    pub fn disassemble_range<B: Bus>(&mut self, bus: &mut B,
+                               start: u32, end: u32) {
+        self.print = false;
+        self.print_range(bus, start, end);
+        self.print = true;
+        self.print_range(bus, start, end);
+    }
+
+    fn disass_addr<B: Bus>(&mut self, bus: &mut B, addr: u32) {
+        let op = bus.read_word(addr);
+        let mut label = String::clone(self.labels.get(&addr)
+                                      .unwrap_or(&String::from("")));
+        if self.print {
+            print!("{:<10}  {:#010x}   {:#06x}    ", label, addr, op);
+        }
+        do_op!(self, bus, op);
+    }
+
+    fn print_unknown_instr(&mut self, op: u16) {
+        print_dis!(self, "unknown instruction: {:#06x}", op);
+    }
+
+    fn add_label(&mut self, addr: u32) -> String {
         let label_name = format!("label-{}", self.labels.len());
         if !self.labels.contains_key(&addr) {
             self.labels.insert(addr, label_name);
         }
-        &self.labels.get(&addr).unwrap()
+        String::clone(self.labels.get(&addr).unwrap())
     }
 
     fn op_most_significant_nibble_unknown(&mut self, op: u16) {
@@ -148,20 +165,24 @@ impl Disassemble {
 
     fn bf<B: Bus>(&mut self, bus: &mut B, disp: i32) {
         let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
-        let label = self.add_label(addr);
-        println!("bf {} (addr: {:#010x}) (disp: {})", label, addr, disp);
+        let mut label = self.add_label(addr);
+        print_dis!(self, "bf {}   (addr: {:#010x}, disp: {})",
+                   label, addr, disp);
     }
 
     fn bra<B: Bus>(&mut self, bus: &mut B, disp: i32) {
         let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
-        let label = self.add_label(addr);
-        println!("bra {} (addr: {:#010x}) (disp: {})", label, addr, disp);
+        let mut label = self.add_label(addr);
+        print_dis!(self, "bra {}   (addr: {:#010x}, disp: {})",
+                   label, addr, disp);
     }
 
     fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
         // PC = 4 bytes past current instr, with bottom 2 bits set to 0
         let pc = (self.pc + 4) & 0xfffffffc;
         let src = (disp << 2) + pc;
-        println!("mov.l @({}, PC), r{} (addr: {:#010x})", disp, rn, src);
+        let val = bus.read_long(src);
+        print_dis!(self, "mov.l @({}, PC), r{}   (addr: {:#010x}, val: {:#010x})",
+                   disp, rn, src, val);
     }
 }
