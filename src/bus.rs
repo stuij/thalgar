@@ -16,15 +16,18 @@ mod tests {
 
 
     impl Bus for TestBus {
+        #[allow(unused_variables)]
         fn read_word(&self, addr: u32) -> u16 {
             self.addr[0]
         }
 
+        #[allow(unused_variables)]
         fn read_long(&self, addr: u32) -> u32 {
             (self.addr[0] as u32) << 16 |
             self.addr[1] as u32
         }
 
+        #[allow(unused_variables)]
         fn write_long(&mut self, addr: u32, val: u32) {
             self.addr[0] = (val >> 16) as u16;
             self.addr[1] = (val & 0xFFFF) as u16;

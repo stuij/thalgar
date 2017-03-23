@@ -1,8 +1,6 @@
 use std::fmt;
 
 use bus::Bus;
-use disasm;
-use ops;
 
 
 #[derive(Clone)]
@@ -83,13 +81,15 @@ impl fmt::Display for Regs {
         for i in 0..2 {
             for j in 0..8 {
                 let offset = i*8 + j;
-                write!(f, "  r{:#02}: {:#010x} ", offset, self.gpr[offset]);
+                write!(f, "  r{:#02}: {:#010x} ", offset, self.gpr[offset])
+                    .unwrap();
             };
-            write!(f, "\n");
+            write!(f, "\n").unwrap();
         };
         write!(f, "\n   pc: {:#010x}   vbr: {:#010x}   gbr: {:#010x}    \
                         pr: {:#010x}  mach: {:#010x}  macl: {:#010x} ",
-               self.pc, self.vbr, self.gbr, self.pr, self.mach, self.macl);
+               self.pc, self.vbr, self.gbr, self.pr, self.mach, self.macl)
+            .unwrap();
         write!(f, "\n sr_t: {:<10}  sr_s: {:<10}  sr_q: {:<10}  \
                    sr_m: {:<10}  sr_i: {:#06b}",
                self.sr_t, self.sr_s, self.sr_q, self.sr_m, self.sr_i)
@@ -190,13 +190,13 @@ impl Sh2 {
     // instr        format            desc                            cyc  t-bit
 
     // ADD #imm, Rn  0111nnnniiiiiiii  Rn + imm → Rn                  1    -
-    fn add_i<B: Bus>(&mut self, bus: &mut B, imm: u32, rn: usize) {
+    fn add_i(&mut self, imm: u32, rn: usize) {
         self.regs.gpr[rn] += imm;
     }
 
     // BF  label  10001011dddddddd  If T = 0, disp × 2 + PC → PC;     3/1  -
     //                              if T = 1, nop
-    fn bf<B: Bus>(&mut self, bus: &mut B, disp: i32) {
+    fn bf(&mut self, disp: i32) {
         if !self.regs.sr_t {
             self.regs.pc = (self.regs.pc + 2).wrapping_add((disp << 1) as u32);
             self.cycles += 2;
@@ -205,7 +205,7 @@ impl Sh2 {
 
     // BRA label  1010dddddddddddd  Delayed branch,                   2    -
     //                              disp × 2 + PC → PC
-    fn bra<B: Bus>(&mut self, bus: &mut B, disp: i32) {
+    fn bra(&mut self, disp: i32) {
         self.delay = true;
         self.delay_pc = (self.regs.pc + 2).wrapping_add((disp << 1) as u32);
         self.cycles += 1;
@@ -213,7 +213,7 @@ impl Sh2 {
 
     // CMP/HS Rm, Rn  0011nnnnmmmm0010  If Rn≥Rm with                 1    Comp.
     //                                  unsigned data, 1 → T              result
-    fn cmp_hs<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+    fn cmp_hs(&mut self, rm: usize, rn: usize) {
         if self.regs.gpr[rn] >= self.regs.gpr[rm] {
             self.regs.sr_t = true;
         } else {
@@ -222,7 +222,7 @@ impl Sh2 {
     }
 
     // MOV #imm, Rn  1110nnnniiiiiiii  #imm → Sign extension → Rn     1    -
-    fn mov_i<B: Bus>(&mut self, bus: &mut B, imm: u32, rn: usize) {
+    fn mov_i(&mut self, imm: u32, rn: usize) {
         self.regs.gpr[rn] = imm;
     }
 
@@ -270,16 +270,19 @@ mod tests {
     }
 
     impl Bus for TestBus {
+        #[allow(unused_variables)]
         fn read_word(&self, addr: u32) -> u16 {
             // just get the first word
             self.addr[0]
         }
 
+        #[allow(unused_variables)]
         fn read_long(&self, addr: u32) -> u32 {
             (self.addr[0] as u32) << 16 |
             self.addr[1] as u32
         }
 
+        #[allow(unused_variables)]
         fn write_long(&mut self, addr: u32, val: u32) {
             self.addr[0] = (val >> 16) as u16;
             self.addr[1] = (val & 0xFFFF) as u16;

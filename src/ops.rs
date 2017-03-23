@@ -4,17 +4,17 @@
 
 // PC relative 8 bits of displacement
 macro_rules! d8_format {
-    ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
+    ($this:ident, $op:expr, $fun:ident) => {
         let disp = $op as i8 as i32;
-        $this.$fun($bus, disp);
+        $this.$fun(disp);
     }
 }
 
 // PC relative 12 bits of displacement
 macro_rules! d12_format {
-    ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
+    ($this:ident, $op:expr, $fun:ident) => {
         let d = ($op & 0x0fff) as i32;
-        $this.$fun($bus, (d << 20) >> 20);
+        $this.$fun((d << 20) >> 20);
     }
 }
 
@@ -36,6 +36,15 @@ macro_rules! nm_format {
     }
 }
 
+macro_rules! nm_no_bus_format {
+    ($this:ident, $op:expr, $fun:ident) => {
+        let regs = ($op & 0x0ff0) >> 4;
+        let rn = (regs >> 0x4) as usize;
+        let rm = (regs & 0xf) as usize;
+        $this.$fun(rm, rn);
+    }
+}
+
 // PC relative with displacement
 macro_rules! nd8_format {
     ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
@@ -47,10 +56,10 @@ macro_rules! nd8_format {
 
 // register + sign extended immediate
 macro_rules! ni_format {
-    ($this:ident, $bus:expr, $op:expr, $fun:ident) => {
+    ($this:ident, $op:expr, $fun:ident) => {
         let rn = (($op & 0x0f00) >> 0x8) as usize;
         let i = $op as i8 as i32 as u32;
-        $this.$fun($bus, i, rn);
+        $this.$fun(i, rn);
     }
 }
 
@@ -69,7 +78,7 @@ macro_rules! do_op {
             },
             0b0011 => {
                 match $op & 0xf {
-                    0b0010 => { nm_format!($this, $bus, $op, cmp_hs); },
+                    0b0010 => { nm_no_bus_format!($this, $op, cmp_hs); },
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },
@@ -89,17 +98,17 @@ macro_rules! do_op {
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },
-            0b0111 => { ni_format!($this, $bus, $op, add_i); },
+            0b0111 => { ni_format!($this, $op, add_i); },
             0b1000 => {
                 match ($op & 0x0f00) >> 8 {
-                    0b1011 => { d8_format!($this, $bus, $op, bf); },
+                    0b1011 => { d8_format!($this, $op, bf); },
                     _ => panic!("2nd nibble unknown: {:#06b} of op {:#06x}",
                                 ($op & 0x0f00) >> 8, $op)
                 }
             },
-            0b1010 => { d12_format!($this, $bus, $op, bra); },
+            0b1010 => { d12_format!($this, $op, bra); },
             0b1101 => { nd8_format!($this, $bus, $op, mov_li); },
-            0b1110 => { ni_format!($this, $bus, $op, mov_i); },
+            0b1110 => { ni_format!($this, $op, mov_i); },
             _ => $this.op_most_significant_nibble_unknown($op)
         }
     }
