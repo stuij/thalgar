@@ -158,13 +158,14 @@ impl Disassemble {
     // compressed
     imm_n!(add_i, "add");
     mn!(cmp_hs, "cmp/hs");
+    at_mn!(mov_wl, "mov.w");
     at_mn!(mov_ll, "mov.l");
     m_at_n!(mov_ls, "mov.l");
     imm_n!(mov_i, "mov");
     mn_post_dec!(mov_lm, "mov.l");
     n_post_dec!(sts_mpr, "sts.l", "pr");
 
-    #[allow(unused_variables)]
+    // spelled out
     fn bf(&mut self, disp: i32) {
         let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
         let label = self.add_label(addr);
@@ -172,12 +173,20 @@ impl Disassemble {
                    label, addr, disp);
     }
 
-    #[allow(unused_variables)]
     fn bra(&mut self, disp: i32) {
         let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
         let label = self.add_label(addr);
         print_dis!(self, "bra {}   (addr: {:#010x}, disp: {:#x})",
                    label, addr, disp);
+    }
+
+    fn mov_wi<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
+        // PC = 4 bytes past current instr
+        let pc = self.pc + 4;
+        let src = (disp << 1) + pc;
+        let val = bus.read_word(src) as i16 as i32 as u32;
+        print_dis!(self, "mov.w @({:#x}, PC), r{}   (addr: {:#010x}, val: {:#06x})",
+                   disp, rn, src, val);
     }
 
     fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {

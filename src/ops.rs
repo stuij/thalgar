@@ -94,6 +94,7 @@ macro_rules! do_op {
             },
             0b0110 => {
                 match $op & 0xf {
+                    0b0001 => { nm_format!($this, $bus, $op, mov_wl); },
                     0b0010 => { nm_format!($this, $bus, $op, mov_ll); },
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
@@ -106,6 +107,7 @@ macro_rules! do_op {
                                 ($op & 0x0f00) >> 8, $op)
                 }
             },
+            0b1001 => { nd8_format!($this, $bus, $op, mov_wi); },
             0b1010 => { d12_format!($this, $op, bra); },
             0b1101 => { nd8_format!($this, $bus, $op, mov_li); },
             0b1110 => { ni_format!($this, $op, mov_i); },

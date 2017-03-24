@@ -226,6 +226,21 @@ impl Sh2 {
         self.regs.gpr[rn] = imm;
     }
 
+    // MOV.W @(disp:8,PC),Rn  1001nnnndddddddd  (disp × 2 + PC) →     1    -
+    //                                           Sign extension → Rn
+    fn mov_wi<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
+        // PC = 4 bytes past current instr
+        let src = (disp << 1) + self.regs.pc + 2;
+        let val = bus.read_word(src) as i16 as i32 as u32;
+        self.regs.gpr[rn] = val;
+    }
+
+    // MOV.W @Rm,Rn  0110nnnnmmmm0001  (Rm) → Sign extension → Rn     1    -
+    fn mov_wl<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        self.regs.gpr[rn] =
+            bus.read_word(self.regs.gpr[rm]) as i16 as i32 as u32;
+    }
+
     // MOV.L @(disp:8,PC),Rn  1101nnnndddddddd  (disp × 4 + PC) → Rn  1    -
     fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
         // PC = 4 bytes past current instr, with bottom 2 bits set to 0
