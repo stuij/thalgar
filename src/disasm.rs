@@ -159,21 +159,29 @@ impl Disassemble {
         self.print_unknown_instr(op);
     }
 
-    // compressed
-    imm_n!(add_i, "add");
+    // ops
+    // 0010
+    m_at_n!(mov_ls, "mov.l");
+    mn_post_dec!(mov_lm, "mov.l");
     mn!(tst, "tst");
     mn!(and, "and");
     mn!(xor, "xor");
     mn!(or, "or");
+
+    // 0011
     mn!(cmp_hs, "cmp/hs");
-    at_mn!(mov_wl, "mov.w");
-    at_mn!(mov_ll, "mov.l");
-    m_at_n!(mov_ls, "mov.l");
-    imm_n!(mov_i, "mov");
-    mn_post_dec!(mov_lm, "mov.l");
+
+    // 0100
     n_post_dec!(sts_mpr, "sts.l", "pr");
 
-    // spelled out
+    // 0110
+    at_mn!(mov_wl, "mov.w");
+    at_mn!(mov_ll, "mov.l");
+
+    // 0111
+    imm_n!(add_i, "add");
+
+    // 1000
     fn bf(&mut self, disp: i32) {
         let addr = (self.caret + 4).wrapping_add((disp << 1) as u32);
         let label = self.add_label(addr);
@@ -181,13 +189,7 @@ impl Disassemble {
                    label, addr, disp);
     }
 
-    fn bra(&mut self, disp: i32) {
-        let addr = (self.caret + 4).wrapping_add((disp << 1) as u32);
-        let label = self.add_label(addr);
-        print_dis!(self, "bra {}   (addr: {:#010x}, disp: {:#x})",
-                   label, addr, disp);
-    }
-
+    // 1001
     fn mov_wi<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
         // PC = 4 bytes past current instr
         let pc = self.caret + 4;
@@ -197,6 +199,15 @@ impl Disassemble {
                    disp, rn, src, val);
     }
 
+    // 1010
+    fn bra(&mut self, disp: i32) {
+        let addr = (self.caret + 4).wrapping_add((disp << 1) as u32);
+        let label = self.add_label(addr);
+        print_dis!(self, "bra {}   (addr: {:#010x}, disp: {:#x})",
+                   label, addr, disp);
+    }
+
+    // 1101
     fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
         // PC = 4 bytes past current instr, with bottom 2 bits set to 0
         let pc = (self.caret + 4) & 0xfffffffc;
@@ -205,4 +216,7 @@ impl Disassemble {
         print_dis!(self, "mov.l @({:#x}, PC), r{}   (addr: {:#010x}, val: {:#010x})",
                    disp, rn, src, val);
     }
+
+    // 1110
+    imm_n!(mov_i, "mov");
 }
