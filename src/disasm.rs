@@ -161,6 +161,10 @@ impl Disassemble {
 
     // compressed
     imm_n!(add_i, "add");
+    mn!(tst, "tst");
+    mn!(and, "and");
+    mn!(xor, "xor");
+    mn!(or, "or");
     mn!(cmp_hs, "cmp/hs");
     at_mn!(mov_wl, "mov.w");
     at_mn!(mov_ll, "mov.l");

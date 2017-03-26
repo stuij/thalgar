@@ -36,7 +36,7 @@ macro_rules! nm_format {
     }
 }
 
-macro_rules! nm_no_bus_format {
+macro_rules! nm_nobus_format {
     ($this:ident, $op:expr, $fun:ident) => {
         let regs = ($op & 0x0ff0) >> 4;
         let rn = (regs >> 0x4) as usize;
@@ -73,12 +73,16 @@ macro_rules! do_op {
                 match $op & 0xf {
                     0b0010 => { nm_format!($this, $bus, $op, mov_ls); },
                     0b0110 => { nm_format!($this, $bus, $op, mov_lm); },
+                    0b1000 => { nm_nobus_format!($this, $op, tst); },
+                    0b1001 => { nm_nobus_format!($this, $op, and); },
+                    0b1010 => { nm_nobus_format!($this, $op, xor); },
+                    0b1011 => { nm_nobus_format!($this, $op, or); },
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },
             0b0011 => {
                 match $op & 0xf {
-                    0b0010 => { nm_no_bus_format!($this, $op, cmp_hs); },
+                    0b0010 => { nm_nobus_format!($this, $op, cmp_hs); },
                     _ => $this.op_least_significant_nibble_unknown($op)
                 }
             },

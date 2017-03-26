@@ -194,6 +194,28 @@ impl Sh2 {
         self.regs.gpr[rn] += imm;
     }
 
+    // TST Rm, Rn  0010nnnnmmmm1000  Rn & Rm → Rn  Rn & Rm; if the    1    test
+    //                               result is 0, 1 → T                   result
+    fn tst(&mut self, rm: usize, rn: usize) {
+        let res = self.regs.gpr[rn] & self.regs.gpr[rm];
+        self.regs.sr_t = if res == 0 { true } else { false };
+    }
+
+    // AND Rm, Rn  0010nnnnmmmm1001  Rn & Rm → Rn                     1    -
+    fn and(&mut self, rm: usize, rn: usize) {
+        self.regs.gpr[rn] &= self.regs.gpr[rm];
+    }
+
+    // XOR Rm, Rn  0010nnnnmmmm1010  Rn & Rm → Rn                     1    -
+    fn xor(&mut self, rm: usize, rn: usize) {
+        self.regs.gpr[rn] ^= self.regs.gpr[rm];
+    }
+
+    // OR Rm, Rn  0010nnnnmmmm1011  Rn | Rm → Rn                      1    -
+    fn or(&mut self, rm: usize, rn: usize) {
+        self.regs.gpr[rn] |= self.regs.gpr[rm];
+    }
+
     // BF  label  10001011dddddddd  If T = 0, disp × 2 + PC → PC;     3/1  -
     //                              if T = 1, nop
     fn bf(&mut self, disp: i32) {
