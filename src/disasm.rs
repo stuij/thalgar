@@ -84,6 +84,7 @@ macro_rules! n_post_dec {
 
 pub struct Disassemble {
     pc: u32,
+    caret: u32,
     labels: HashMap<u32, String>,
     print: bool
 }
@@ -92,6 +93,7 @@ pub struct Disassemble {
 impl Disassemble {
     pub fn new() -> Disassemble {
         Disassemble { pc: 0,
+                      caret: 0,
                       labels: HashMap::new(),
                       print: true,
         }
@@ -99,6 +101,7 @@ impl Disassemble {
 
     pub fn disasemble<B: Bus>(&mut self, bus: &mut B, pc: u32) {
         self.pc = pc;
+        self.caret = pc;
         self.disass_addr(bus, pc);
     }
 
@@ -114,6 +117,7 @@ impl Disassemble {
     fn print_range<B: Bus>(&mut self, bus: &mut B,
                            start: u32, end: u32) {
         for i in (start..end).filter(|x| x % 2 == 0) {
+            self.caret = i;
             self.disass_addr(bus, i);
         }
     }
@@ -167,14 +171,14 @@ impl Disassemble {
 
     // spelled out
     fn bf(&mut self, disp: i32) {
-        let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
+        let addr = (self.caret + 4).wrapping_add((disp << 1) as u32);
         let label = self.add_label(addr);
         print_dis!(self, "bf {}   (addr: {:#010x}, disp: {:#x})",
                    label, addr, disp);
     }
 
     fn bra(&mut self, disp: i32) {
-        let addr = (self.pc + 4).wrapping_add((disp << 1) as u32);
+        let addr = (self.caret + 4).wrapping_add((disp << 1) as u32);
         let label = self.add_label(addr);
         print_dis!(self, "bra {}   (addr: {:#010x}, disp: {:#x})",
                    label, addr, disp);
@@ -182,7 +186,7 @@ impl Disassemble {
 
     fn mov_wi<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
         // PC = 4 bytes past current instr
-        let pc = self.pc + 4;
+        let pc = self.caret + 4;
         let src = (disp << 1) + pc;
         let val = bus.read_word(src) as i16 as i32 as u32;
         print_dis!(self, "mov.w @({:#x}, PC), r{}   (addr: {:#010x}, val: {:#06x})",
@@ -191,7 +195,7 @@ impl Disassemble {
 
     fn mov_li<B: Bus>(&mut self, bus: &mut B, disp: u32, rn: usize) {
         // PC = 4 bytes past current instr, with bottom 2 bits set to 0
-        let pc = (self.pc + 4) & 0xfffffffc;
+        let pc = (self.caret + 4) & 0xfffffffc;
         let src = (disp << 2) + pc;
         let val = bus.read_long(src);
         print_dis!(self, "mov.l @({:#x}, PC), r{}   (addr: {:#010x}, val: {:#010x})",
