@@ -56,6 +56,29 @@ impl<U: Bus> Sh7604Mem<U> {
 
 
 impl<U: Bus> Bus for Sh7604Mem<U> {
+    // byte access
+    fn read_byte(&self, addr: u32) -> u8 {
+        match addr {
+            0xe0000000 ... 0xffffffff => {
+                match addr {
+                    _ => panic!("sh7604 read_byte: {:#010x} not (yet) mapped",
+                                addr)
+                }
+            },
+            _ => self.user.read_byte(addr)
+        }
+    }
+
+    fn write_byte(&mut self, addr: u32, val: u8) {
+        match addr {
+            0xe0000000 ... 0xffffffff => {
+                panic!("sh7604 write_byte: no private mem mapped yet")
+            },
+            _ => self.user.write_byte(addr, val)
+        };
+    }
+
+    // word access
     fn read_word(&self, addr: u32) -> u16 {
         match addr {
             0xe0000000 ... 0xffffffff => {
@@ -69,6 +92,16 @@ impl<U: Bus> Bus for Sh7604Mem<U> {
         }
     }
 
+    fn write_word(&mut self, addr: u32, val: u16) {
+        match addr {
+            0xe0000000 ... 0xffffffff => {
+                panic!("sh7604 write_word: no private mem mapped yet")
+            },
+            _ => self.user.write_word(addr, val)
+        };
+    }
+
+    // long access
     fn read_long(&self, addr: u32) -> u32 {
         match addr {
             0xe0000000 ... 0xffffffff => {

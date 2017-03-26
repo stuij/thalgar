@@ -319,37 +319,58 @@ impl Sh2 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use common::MemAccess;
 
     pub struct TestBus {
-        addr: [u16; 2]
+        mem: [u8; 4]
     }
 
     impl Bus for TestBus {
-        #[allow(unused_variables)]
+        fn read_byte(&self, addr: u32) -> u8 {
+            u8::read_mem(&self.mem, addr as usize)
+        }
+
+        fn write_byte(&mut self, addr: u32, val: u8) {
+            u8::write_mem(&mut self.mem, addr as usize, val);
+        }
+
         fn read_word(&self, addr: u32) -> u16 {
-            // just get the first word
-            self.addr[0]
+            u16::read_mem(&self.mem, addr as usize)
         }
 
-        #[allow(unused_variables)]
+        fn write_word(&mut self, addr: u32, val: u16) {
+            u16::write_mem(&mut self.mem, addr as usize, val);
+        }
+
         fn read_long(&self, addr: u32) -> u32 {
-            (self.addr[0] as u32) << 16 |
-            self.addr[1] as u32
+            u32::read_mem(&self.mem, addr as usize)
         }
 
-        #[allow(unused_variables)]
         fn write_long(&mut self, addr: u32, val: u32) {
-            self.addr[0] = (val >> 16) as u16;
-            self.addr[1] = (val & 0xFFFF) as u16;
+            u32::write_mem(&mut self.mem, addr as usize, val);
         }
     }
 
     #[test]
-    fn test_step_pc() {
-        let mut bus = TestBus { addr: [0x2fd6, 0x2fe6] };
+    fn read_a_word() {
+        let bus = TestBus { mem: [0xff, 0xee, 0xdd, 0xcc] };
+        assert_eq!(bus.read_word(0), 0xffee);
+    }
+
+    #[test]
+    fn write_a_long() {
+        let mut bus = TestBus { mem: [0x00, 0x00, 0x00, 0x11] };
+        bus.write_long(0, 0xffeeddcc);
+        assert_eq!(bus.mem, [0xff, 0xee, 0xdd, 0xcc]);
+    }
+
+    #[test]
+    fn test_step_pc() {           //  and r1, r4  or r2, r4
+        let mut bus = TestBus { mem: [0x24, 0x19, 0x24, 0x2b] };
         let mut cpu = Sh2::new();
         cpu.reset(0x00000000, 0x1000000);
         cpu.step(&mut bus);
+        println!("pc: {}", cpu.regs.pc);
         assert_eq!(cpu.regs.pc, 0x00000002);
     }
 }
