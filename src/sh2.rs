@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bus::Bus;
-
+use disasm;
 
 #[derive(Clone)]
 pub struct Regs {
@@ -109,7 +109,7 @@ pub struct Sh2 {
 impl fmt::Display for Sh2 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}\
-                   \n  cyc: {:#010x}   del: {:<8}  del_pc: {:#010x}",
+                   \n  cyc: {:#018x}             del: {:<8}  del_pc: {:#010x}",
                self.regs, self.cycles, self.delay, self.delay_pc)
     }
 }
@@ -160,26 +160,42 @@ impl Sh2 {
         self.cycles += 1;
     }
 
-    fn op_most_significant_nibble_unknown(&mut self, op: u16) {
+    fn print_op_panic_list<B: Bus>(&mut self, bus: &mut B) {
+        let mut dis = disasm::Disassemble::new();
+        let pc = self.regs.pc;
+        dis.disassemble_range(bus, pc-30, pc+40, pc);
+    }
+    fn op_most_significant_nibble_unknown<B: Bus>(&mut self, op: u16,
+                                                  bus: &mut B) {
+        self.print_op_panic_list(bus);
         panic!("\n\ndid not recognize most significant nibble \
                 {:#06b} of op {:#06x}\n\nCPU state:\n{}\n\n",
                op >> 12, op, self)
     }
 
 
-    fn op_least_significant_nibble_unknown(&mut self, op: u16) {
+    fn op_2nd_nibble_unknown<B: Bus>(&mut self, op: u16, bus: &mut B) {
+        self.print_op_panic_list(bus);
+        panic!("\n\ndid not recognize 2nd nibble \
+                {:#010b} of op {:#06x} \n\nCPU state:\n{}\n\n",
+               op & 0x0F00 >> 8, op, self)
+    }
+
+    fn op_least_significant_nibble_unknown<B: Bus>(&mut self, op: u16,
+                                                   bus: &mut B) {
+        self.print_op_panic_list(bus);
         panic!("\n\ndid not recognize least significant nibble \
                 {:#06b} of op {:#06x} \n\nCPU state:\n{}\n\n",
                op & 0xF, op, self)
     }
 
-
-    fn op_least_significant_byte_unknown(&mut self, op: u16) {
+    fn op_least_significant_byte_unknown<B: Bus>(&mut self, op: u16,
+                                                 bus: &mut B) {
+        self.print_op_panic_list(bus);
         panic!("\n\ndid not recognize least significant byte \
                 {:#010b} of op {:#06x} \n\nCPU state:\n{}\n\n",
                op & 0xFF, op, self)
     }
-
 
     fn do_op<B: Bus>(&mut self, bus: &mut B, op: u16) {
         do_op!(self, bus, op);
@@ -190,6 +206,16 @@ impl Sh2 {
     // instr        format            desc                            cyc  t-bit
 
     // 0010
+    // MOV.B Rm, @Rn  0010nnnnmmmm0000  Rm → (Rn)                     1    -
+    fn mov_bs<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        bus.write_byte(self.regs.gpr[rn], self.regs.gpr[rm] as u8);
+    }
+
+    // MOV.W Rm, @Rn  0010nnnnmmmm0001  Rm → (Rn)                     1    -
+    fn mov_ws<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        bus.write_word(self.regs.gpr[rn], self.regs.gpr[rm] as u16);
+    }
+
     // MOV.L Rm, @Rn  0010nnnnmmmm0010  Rm → (Rn)                     1    -
     fn mov_ls<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
         bus.write_long(self.regs.gpr[rn], self.regs.gpr[rm]);
@@ -248,6 +274,13 @@ impl Sh2 {
 
 
     // 0110
+    // MOV.B @Rm,Rn  0110nnnnmmmm0000  (Rm) → Sign extension → Rn     1    -
+    fn mov_bl<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
+        self.regs.gpr[rn] =
+            bus.read_byte(self.regs.gpr[rm]) as i8 as i32 as u32;
+    }
+
+
     // MOV.W @Rm,Rn  0110nnnnmmmm0001  (Rm) → Sign extension → Rn     1    -
     fn mov_wl<B: Bus>(&mut self, bus: &mut B, rm: usize, rn: usize) {
         self.regs.gpr[rn] =
@@ -263,7 +296,7 @@ impl Sh2 {
     // 0111
     // ADD #imm, Rn  0111nnnniiiiiiii  Rn + imm → Rn                  1    -
     fn add_i(&mut self, imm: u32, rn: usize) {
-        self.regs.gpr[rn] += imm;
+        self.regs.gpr[rn] = self.regs.gpr[rn].wrapping_add(imm);
     }
 
 

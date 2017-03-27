@@ -71,19 +71,21 @@ macro_rules! do_op {
             0b0010 => {
                 // least significant nibble
                 match $op & 0xf {
+                    0b0000 => { nm_format!($this, $bus, $op, mov_bs); },
+                    0b0001 => { nm_format!($this, $bus, $op, mov_ws); },
                     0b0010 => { nm_format!($this, $bus, $op, mov_ls); },
                     0b0110 => { nm_format!($this, $bus, $op, mov_lm); },
                     0b1000 => { nm_nobus_format!($this, $op, tst); },
                     0b1001 => { nm_nobus_format!($this, $op, and); },
                     0b1010 => { nm_nobus_format!($this, $op, xor); },
                     0b1011 => { nm_nobus_format!($this, $op, or); },
-                    _ => $this.op_least_significant_nibble_unknown($op)
+                    _ => $this.op_least_significant_nibble_unknown($op, $bus)
                 }
             },
             0b0011 => {
                 match $op & 0xf {
                     0b0010 => { nm_nobus_format!($this, $op, cmp_hs); },
-                    _ => $this.op_least_significant_nibble_unknown($op)
+                    _ => $this.op_least_significant_nibble_unknown($op, $bus)
                 }
             },
             0b0100 => {
@@ -92,30 +94,30 @@ macro_rules! do_op {
                 } else {
                     match $op & 0xff {
                         0b00100010 => { n_format!($this, $bus, $op, sts_mpr); },
-                        _ => $this.op_least_significant_byte_unknown($op)
+                        _ => $this.op_least_significant_byte_unknown($op, $bus)
                     }
                 }
             },
             0b0110 => {
                 match $op & 0xf {
+                    0b0000 => { nm_format!($this, $bus, $op, mov_bl); },
                     0b0001 => { nm_format!($this, $bus, $op, mov_wl); },
                     0b0010 => { nm_format!($this, $bus, $op, mov_ll); },
-                    _ => $this.op_least_significant_nibble_unknown($op)
+                    _ => $this.op_least_significant_nibble_unknown($op, $bus)
                 }
             },
             0b0111 => { ni_format!($this, $op, add_i); },
             0b1000 => {
                 match ($op & 0x0f00) >> 8 {
                     0b1011 => { d8_format!($this, $op, bf); },
-                    _ => panic!("2nd nibble unknown: {:#06b} of op {:#06x}",
-                                ($op & 0x0f00) >> 8, $op)
+                    _ => $this.op_2nd_nibble_unknown($op, $bus)
                 }
             },
             0b1001 => { nd8_format!($this, $bus, $op, mov_wi); },
             0b1010 => { d12_format!($this, $op, bra); },
             0b1101 => { nd8_format!($this, $bus, $op, mov_li); },
             0b1110 => { ni_format!($this, $op, mov_i); },
-            _ => $this.op_most_significant_nibble_unknown($op)
+            _ => $this.op_most_significant_nibble_unknown($op, $bus)
         }
     }
 }

@@ -147,20 +147,29 @@ impl Disassemble {
         String::clone(self.labels.get(&addr).unwrap())
     }
 
-    fn op_most_significant_nibble_unknown(&mut self, op: u16) {
+    fn op_most_significant_nibble_unknown<B: Bus>(&mut self, op: u16,
+                                                  _bus: &mut B) {
         self.print_unknown_instr(op);
     }
 
-    fn op_least_significant_nibble_unknown(&mut self, op: u16) {
+    fn op_2nd_nibble_unknown<B: Bus>(&mut self, op: u16, _bus: &mut B) {
         self.print_unknown_instr(op);
     }
 
-    fn op_least_significant_byte_unknown(&mut self, op: u16) {
+    fn op_least_significant_nibble_unknown<B: Bus>(&mut self, op: u16,
+                                                   _bus: &mut B) {
+        self.print_unknown_instr(op);
+    }
+
+    fn op_least_significant_byte_unknown<B: Bus>(&mut self, op: u16,
+                                                 _bus: &mut B) {
         self.print_unknown_instr(op);
     }
 
     // ops
     // 0010
+    m_at_n!(mov_bs, "mov.b");
+    m_at_n!(mov_ws, "mov.w");
     m_at_n!(mov_ls, "mov.l");
     mn_post_dec!(mov_lm, "mov.l");
     mn!(tst, "tst");
@@ -175,6 +184,7 @@ impl Disassemble {
     n_post_dec!(sts_mpr, "sts.l", "pr");
 
     // 0110
+    at_mn!(mov_bl, "mov.b");
     at_mn!(mov_wl, "mov.w");
     at_mn!(mov_ll, "mov.l");
 
