@@ -103,6 +103,10 @@ macro_rules! do_op {
                     0b0000 => { nm_format!($this, $bus, $op, mov_bl); },
                     0b0001 => { nm_format!($this, $bus, $op, mov_wl); },
                     0b0010 => { nm_format!($this, $bus, $op, mov_ll); },
+                    0b1100 => { nm_nobus_format!($this, $op, ext_ub); },
+                    0b1101 => { nm_nobus_format!($this, $op, ext_uw); },
+                    0b1110 => { nm_nobus_format!($this, $op, ext_sb); },
+                    0b1111 => { nm_nobus_format!($this, $op, ext_sw); },
                     _ => $this.op_least_significant_nibble_unknown($op, $bus)
                 }
             },

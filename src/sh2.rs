@@ -292,6 +292,30 @@ impl Sh2 {
         self.regs.gpr[rn] = bus.read_long(self.regs.gpr[rm]);
     }
 
+    // EXTU.B rm, rn  0110nnnnmmmm1100  A byte in Rm is sign-         1    -
+    //                                  extended → Rn
+    fn ext_ub(&mut self, rm: usize, rn: usize) {
+        self.regs.gpr[rn] = self.regs.gpr[rm] & 0x000000FF
+    }
+
+    // EXTU.W rm, rn  0110nnnnmmmm1101  A byte in Rm is sign-         1    -
+    //                                  extended → Rn
+    fn ext_uw(&mut self, rm: usize, rn: usize) {
+        self.regs.gpr[rn] = self.regs.gpr[rm] & 0x0000FFFF;
+    }
+
+    // EXTS.B rm, rn  0110nnnnmmmm1110  A byte in Rm is sign-         1    -
+    //                                  extended → Rn
+    fn ext_sb(&mut self, rm: usize, rn: usize) {
+        self.regs.gpr[rn] = self.regs.gpr[rm] as i8 as i32 as u32;
+    }
+
+    // EXTS.W rm, rn  0110nnnnmmmm1111  A byte in Rm is sign-         1    -
+    //                                  extended → Rn
+    fn ext_sw(&mut self, rm: usize, rn: usize) {
+        self.regs.gpr[rn] = self.regs.gpr[rm] as i16 as i32 as u32;
+    }
+
 
     // 0111
     // ADD #imm, Rn  0111nnnniiiiiiii  Rn + imm → Rn                  1    -
@@ -309,6 +333,7 @@ impl Sh2 {
             self.cycles += 2;
         }
     }
+
 
     // 1001
     // MOV.W @(disp:8,PC),Rn  1001nnnndddddddd  (disp × 2 + PC) →     1    -

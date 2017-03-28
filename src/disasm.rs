@@ -187,6 +187,11 @@ impl Disassemble {
     at_mn!(mov_bl, "mov.b");
     at_mn!(mov_wl, "mov.w");
     at_mn!(mov_ll, "mov.l");
+    mn!(ext_ub, "extu.b");
+    mn!(ext_uw, "extu.w");
+    mn!(ext_sb, "exts.b");
+    mn!(ext_sw, "exts.w");
+
 
     // 0111
     imm_n!(add_i, "add");

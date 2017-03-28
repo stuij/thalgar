@@ -7,16 +7,16 @@ struct Regs {
     //                             size
 
     // FRT (Free Running Timer) regs
-    _tier:     u8, // 0xFFFFFE10      8
-    _ftcsr:    u8, // 0xFFFFFE11      8
+    tier:     u8,  // 0xFFFFFE10      8
+    ftcsr:     u8, // 0xFFFFFE11      8
     _frc_h:    u8, // 0xFFFFFE12      8
     _frc_l:    u8, // 0xFFFFFE13      8
-    _ocra_h:   u8, // 0xFFFFFE14      8
-    _ocra_l:   u8, // 0xFFFFFE15      8
-    _ocrb_h:   u8, // 0xFFFFFE14      8
-    _ocrb_l:   u8, // 0xFFFFFE15      8
+    ocra_h:    u8, // 0xFFFFFE14      8
+    ocra_l:    u8, // 0xFFFFFE15      8
+    ocrb_h:    u8, // 0xFFFFFE14      8
+    ocrb_l:    u8, // 0xFFFFFE15      8
     tcr:       u8, // 0xFFFFFE16      8
-    _tocr:     u8, // 0xFFFFFE17      8
+    tocr:      u8, // 0xFFFFFE17      8
     _icr_h:    u8, // 0xFFFFFE18      8
     _icr_l:    u8, // 0xFFFFFE19      8
 
@@ -38,16 +38,16 @@ impl Regs {
     fn new() -> Regs {
         Regs {
             // FRT
-            _tier:          0x01,
-            _ftcsr:         0x00,
+            tier:           0x01,
+            ftcsr:          0x00,
             _frc_h:         0x00,
             _frc_l:         0x00,
-            _ocra_h:        0xff,
-            _ocra_l:        0xff,
-            _ocrb_h:        0xff,
-            _ocrb_l:        0xff,
+            ocra_h:         0xff,
+            ocra_l:         0xff,
+            ocrb_h:         0xff,
+            ocrb_l:         0xff,
             tcr:            0x00,
-            _tocr:          0xe0,
+            tocr:           0xe0,
             _icr_h:         0x00,
             _icr_l:         0x00,
 
