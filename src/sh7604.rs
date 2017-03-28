@@ -92,22 +92,45 @@ impl<U: Bus> Bus for Sh7604Mem<U> {
         match addr {
             0xe0000000 ... 0xffffffff => {
                 match addr {
+                    // curious but true: these two addresses below
+                    // are shared between registers
+                    0xfffffe14 => {
+                        if self.regs.tocr & 0x10 == 0 { self.regs.ocra_h }
+                        else { self.regs.ocrb_h }
+                    },
+                    0xfffffe15 => {
+                        if self.regs.tocr & 0x10 == 0 { self.regs.ocra_l }
+                        else { self.regs.ocrb_l }
+                    },
                     0xfffffe16 => self.regs.tcr,
                     _ => panic!("sh7604 read_byte: {:#010x} not (yet) mapped",
                                 addr)
                 }
             },
-            _ => self.user.read_byte(addr)
+            _ => self.user.read_byte(addr & 0xdfffffff)
         }
     }
 
     fn write_byte(&mut self, addr: u32, val: u8) {
         match addr {
             0xe0000000 ... 0xffffffff => {
-                panic!("sh7604 write_byte: {:#010x} not (yet) mapped",
-                       addr)
+                match addr {
+                    0xfffffe10 => self.regs.tier = val,
+                    0xfffffe11 => self.regs.ftcsr = val,
+                    0xfffffe14 => {
+                        if self.regs.tocr & 0x10 == 0 { self.regs.ocra_h = val }
+                        else { self.regs.ocrb_h = val }
+                    },
+                    0xfffffe15 => {
+                        if self.regs.tocr & 0x10 == 0 { self.regs.ocra_l = val }
+                        else { self.regs.ocrb_l = val }
+                    },
+                    0xfffffe16 => self.regs.tcr = val,
+                    _ => panic!("sh7604 write_byte: {:#010x} not (yet) mapped",
+                           addr)
+                }
             },
-            _ => self.user.write_byte(addr, val)
+            _ => self.user.write_byte(addr & 0xdfffffff, val)
         };
     }
 
@@ -122,7 +145,7 @@ impl<U: Bus> Bus for Sh7604Mem<U> {
                                 addr)
                 }
             },
-            _ => self.user.read_word(addr)
+            _ => self.user.read_word(addr & 0xdfffffff)
         }
     }
 
@@ -136,7 +159,7 @@ impl<U: Bus> Bus for Sh7604Mem<U> {
                                 addr)
                 }
             },
-            _ => self.user.write_word(addr, val)
+            _ => self.user.write_word(addr & 0xdfffffff, val)
         };
     }
 
@@ -146,7 +169,7 @@ impl<U: Bus> Bus for Sh7604Mem<U> {
             0xe0000000 ... 0xffffffff => {
                 panic!("sh7604 read_long: no private mem mapped yet")
             },
-            _ => self.user.read_long(addr)
+            _ => self.user.read_long(addr & 0xdfffffff)
         }
     }
 
@@ -156,7 +179,7 @@ impl<U: Bus> Bus for Sh7604Mem<U> {
                 panic!("sh7604 write_long: {:#010x} not (yet) mapped",
                        addr)
             },
-            _ => self.user.write_long(addr, val)
+            _ => self.user.write_long(addr & 0xdfffffff, val)
         };
     }
 }
